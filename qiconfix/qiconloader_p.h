@@ -74,6 +74,7 @@
 //#include "qt/qicon_p.h"
 //#include "qt/qfactoryloader_p.h"
 #include <QHash>
+#include <QDir>
 
 namespace QtXdg {
 
@@ -168,10 +169,12 @@ public:
     QString contentDir() { return m_contentDir; }
     QStringList contentDirs() { return m_contentDirs; }
     bool isValid() { return m_valid; }
+    QHash<QString, QDir>& dirCache() { return m_DirCache; }
 
 private:
     QString m_contentDir;
     QStringList m_contentDirs;
+    QHash<QString, QDir> m_DirCache;
     QList <QIconDirInfo> m_keyList;
     QStringList m_parents;
     bool m_valid;

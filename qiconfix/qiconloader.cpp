@@ -288,9 +288,20 @@ QThemeIconEntries QIconLoader::findIconHelper(const QString &themeName,
 
         foreach (QString contentDir, contentDirs)
         {
-            QDir currentDir(contentDir + '/' + subdir);
+            QDir currentDir;
+            QString subDirPath = contentDir + '/' + subdir;
+            QHash<QString, QDir>::iterator it = theme.dirCache().find(subDirPath);
+            if(it != theme.dirCache().end())
+                currentDir = *it;
+            else
+            {
+                currentDir = QDir(subDirPath);
+                theme.dirCache().insert(subDirPath, currentDir);
+            }
+            
+            QStringList entryList = currentDir.entryList();
 
-            if (currentDir.exists(iconName + pngext))
+            if (entryList.contains(iconName + pngext))
             {
                 PixmapEntry *iconEntry = new PixmapEntry;
                 iconEntry->dir = dirInfo;
@@ -301,7 +312,7 @@ QThemeIconEntries QIconLoader::findIconHelper(const QString &themeName,
                 break;
             }
             else if (m_supportsSvg &&
-                     currentDir.exists(iconName + svgext))
+                     entryList.contains(iconName + svgext))
             {
                 ScalableEntry *iconEntry = new ScalableEntry;
                 iconEntry->dir = dirInfo;
@@ -309,7 +320,7 @@ QThemeIconEntries QIconLoader::findIconHelper(const QString &themeName,
                 entries.append(iconEntry);
                 break;
             }
-            else if (currentDir.exists(iconName + xpmext))
+            else if (entryList.contains(iconName + xpmext))
             {
                 PixmapEntry *iconEntry = new PixmapEntry;
                 iconEntry->dir = dirInfo;
@@ -345,14 +356,24 @@ QThemeIconEntries QIconLoader::findIconHelper(const QString &themeName,
                  icon theme specification.
     Bug: https://bugreports.qt.nokia.com/browse/QTBUG-12874
      *********************************************************************/
+// FIXME: this is really Linux-specific
 #ifdef Q_OS_LINUX
     /* Freedesktop standard says to look in /usr/share/pixmaps last */
     if (entries.isEmpty()) {
         const QString pixmaps(QLatin1String("/usr/share/pixmaps"));
+        QDir currentDir;
+        QHash<QString, QDir>::iterator it = theme.dirCache().find(pixmaps);
+        if(it != theme.dirCache().end())
+            currentDir = *it;
+        else
+        {
+            currentDir = QDir(pixmaps);
+            theme.dirCache().insert(pixmaps, currentDir);
+        }
 
-        QDir currentDir(pixmaps);
         QIconDirInfo dirInfo(pixmaps);
-        if (currentDir.exists(iconName + pngext)) {
+        QStringList entryList = currentDir.entryList();
+        if (entryList.contains(iconName + pngext)) {
             PixmapEntry *iconEntry = new PixmapEntry;
             iconEntry->dir = dirInfo;
             iconEntry->filename = currentDir.filePath(iconName + pngext);
@@ -360,12 +381,12 @@ QThemeIconEntries QIconLoader::findIconHelper(const QString &themeName,
             // scalable to preserve search order afterwards
             entries.prepend(iconEntry);
         } else if (m_supportsSvg &&
-                   currentDir.exists(iconName + svgext)) {
+                   entryList.contains(iconName + svgext)) {
             ScalableEntry *iconEntry = new ScalableEntry;
             iconEntry->dir = dirInfo;
             iconEntry->filename = currentDir.filePath(iconName + svgext);
             entries.append(iconEntry);
-        } else if (currentDir.exists(iconName + xpmext)) {
+        } else if (entryList.contains(iconName + xpmext)) {
             PixmapEntry *iconEntry = new PixmapEntry;
             iconEntry->dir = dirInfo;
             iconEntry->filename = currentDir.filePath(iconName + xpmext);
